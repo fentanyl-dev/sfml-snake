@@ -19,6 +19,37 @@ int main()
 
     Direction direction = STILL;
 
+    // Clock
+
+    sf::Clock clock;
+        
+    // Lines
+
+    sf::VertexArray linesY(sf::PrimitiveType::Lines, 32);
+
+    int lineCount = 0;
+
+    for (int i = 0; i < 800; i += 50)
+    {
+        linesY[lineCount].position = sf::Vector2f(0.f, i);
+        linesY[++lineCount].position = sf::Vector2f(800.f,i);
+        lineCount++;
+    }
+    
+    sf::VertexArray linesX(sf::PrimitiveType::Lines, 32);
+
+    lineCount = 0;
+
+    for (int i = 0; i < 800; i += 50)
+    {
+        linesX[lineCount].position = sf::Vector2f(i, 0.f);
+        linesX[++lineCount].position = sf::Vector2f(i, 600.f);
+        lineCount++;
+    }
+    
+
+    //RANDOM
+
     random_device rd;
     mt19937 gen(rd());
 
@@ -88,23 +119,60 @@ int main()
             direction = RIGHT;
         }
 
-        if (direction == UP)
+        if (clock.getElapsedTime().asSeconds() >= 0.2)
         {
-            snakeBody.move({0.f, -5.f});
-        }
-        if (direction == DOWN)
-        {
-            snakeBody.move({0.f, 5.f});
-        }
-        if (direction == LEFT)
-        {
-            snakeBody.move({-5.f, 0.f});
-        }
-        if (direction == RIGHT)
-        {
-            snakeBody.move({5.f, 0.f});
+                if (direction == UP)
+            {
+                snakeBody.move({0.f, -50.f});
+            }
+            if (direction == DOWN)
+            {
+                snakeBody.move({0.f, 50.f});
+            }
+            if (direction == LEFT)
+            {
+                snakeBody.move({-50.f, 0.f});
+            }
+            if (direction == RIGHT)
+            {
+                snakeBody.move({50.f, 0.f});
+            }
+            clock.restart();
         }
 
+        //Bonduary
+
+        sf::Vector2f boundaries = {750.f, 550.f};
+
+        if (snakeBody.getPosition().x < 0)
+        {
+            snakeBody.setPosition({
+                0.f,
+                snakeBody.getPosition().y
+            });
+        }
+        if (snakeBody.getPosition().x > boundaries.x)
+        {
+            snakeBody.setPosition({
+                boundaries.x,
+                snakeBody.getPosition().y
+            });
+        }
+        if (snakeBody.getPosition().y < 0)
+        {
+            snakeBody.setPosition({
+                snakeBody.getPosition().x,
+                0.f
+            });
+        }
+        if (snakeBody.getPosition().y > boundaries.y)
+        {
+            snakeBody.setPosition({
+                snakeBody.getPosition().x,
+                boundaries.y
+            });
+        }
+        
         //Collision
         
         auto intersection = snakeBody.getGlobalBounds().findIntersection(apple.getGlobalBounds());
@@ -118,6 +186,8 @@ int main()
         
         mainWindow.clear(sf::Color::Black);
 
+        mainWindow.draw(linesY);
+        mainWindow.draw(linesX);
         mainWindow.draw(snakeBody);
         mainWindow.draw(apple);
 
