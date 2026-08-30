@@ -1,6 +1,7 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 #include <random>
+#include <vector>
 using namespace std;
 
 int main()
@@ -57,6 +58,8 @@ int main()
     uniform_int_distribution<int> distY(0, 11);
 
     //Snake
+
+    vector<sf::RectangleShape> snake;
     
     sf::RectangleShape snakeBody({50.f, 50.f});
 
@@ -73,6 +76,8 @@ int main()
     }
 
     snakeBody.setTexture(&snakeTexture);
+
+    snake.push_back(snakeBody);
 
     //Apple
 
@@ -121,21 +126,26 @@ int main()
 
         if (clock.getElapsedTime().asSeconds() >= 0.2)
         {
-                if (direction == UP)
+            for (int i = snake.size() - 1; i > 0; i--)
             {
-                snakeBody.move({0.f, -50.f});
+                snake[i].setPosition(snake[i - 1].getPosition());
+            }
+            
+            if (direction == UP)
+            {
+                snake[0].move({0.f, -50.f});
             }
             if (direction == DOWN)
             {
-                snakeBody.move({0.f, 50.f});
+                snake[0].move({0.f, 50.f});
             }
             if (direction == LEFT)
             {
-                snakeBody.move({-50.f, 0.f});
+                snake[0].move({-50.f, 0.f});
             }
             if (direction == RIGHT)
             {
-                snakeBody.move({50.f, 0.f});
+                snake[0].move({50.f, 0.f});
             }
             clock.restart();
         }
@@ -144,51 +154,99 @@ int main()
 
         sf::Vector2f boundaries = {750.f, 550.f};
 
-        if (snakeBody.getPosition().x < 0)
+        if (snake[0].getPosition().x < 0)
         {
-            snakeBody.setPosition({
+            snake[0].setPosition({
                 0.f,
-                snakeBody.getPosition().y
+                snake[0].getPosition().y
             });
         }
-        if (snakeBody.getPosition().x > boundaries.x)
+        if (snake[0].getPosition().x > boundaries.x)
         {
-            snakeBody.setPosition({
+            snake[0].setPosition({
                 boundaries.x,
-                snakeBody.getPosition().y
+                snake[0].getPosition().y
             });
         }
-        if (snakeBody.getPosition().y < 0)
+        if (snake[0].getPosition().y < 0)
         {
-            snakeBody.setPosition({
-                snakeBody.getPosition().x,
+            snake[0].setPosition({
+                snake[0].getPosition().x,
                 0.f
             });
         }
-        if (snakeBody.getPosition().y > boundaries.y)
+        if (snake[0].getPosition().y > boundaries.y)
         {
-            snakeBody.setPosition({
-                snakeBody.getPosition().x,
+            snake[0].setPosition({
+                snake[0].getPosition().x,
                 boundaries.y
             });
         }
         
         //Collision
         
-        auto intersection = snakeBody.getGlobalBounds().findIntersection(apple.getGlobalBounds());
+        auto intersection = snake[0].getGlobalBounds().findIntersection(apple.getGlobalBounds());
         if (intersection)
         {
             apple.setPosition({
                 static_cast<float>(dist(gen) * 50),
                 static_cast<float>(distY(gen) * 50)
             });
+            
+            sf::RectangleShape newSegment({50.f, 50.f});
+            sf::Vector2f lastPosition = snake.back().getPosition();
+            newSegment.setTexture(&snakeTexture);
+
+            if (direction == RIGHT)
+            {
+                newSegment.setPosition({
+                    lastPosition.x - 50.f,
+                    lastPosition.y
+                });
+
+                cout << "Head: "<< lastPosition.x << "Y: " << lastPosition.y << endl;
+            }
+            
+            if (direction == LEFT)
+            {
+                newSegment.setPosition({
+                    lastPosition.x + 50.f,
+                    lastPosition.y
+                });
+            }
+
+            if (direction == UP)
+            {
+                newSegment.setPosition({
+                    lastPosition.x,
+                    lastPosition.y - 50.f
+                });
+            }
+
+            if (direction == DOWN)
+            {
+                newSegment.setPosition({
+                    lastPosition.x,
+                    lastPosition.y + 50.f
+                });
+            }
+            
+            
+
+            snake.push_back(newSegment);
+            
         }
         
         mainWindow.clear(sf::Color::Black);
 
         mainWindow.draw(linesY);
         mainWindow.draw(linesX);
-        mainWindow.draw(snakeBody);
+
+        for (sf::RectangleShape snakes : snake)
+        {
+            mainWindow.draw(snakes);
+        }
+        
         mainWindow.draw(apple);
 
         mainWindow.display();
