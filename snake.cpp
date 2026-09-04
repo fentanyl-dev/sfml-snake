@@ -2,15 +2,17 @@
 #include <iostream>
 #include <random>
 #include <vector>
+
 using namespace std;
 
 int main()
 {
-    sf::RenderWindow mainWindow (sf::VideoMode({800,600}), "Snake");
+    sf::RenderWindow mainWindow(sf::VideoMode({800,600}), "Snake");
 
     mainWindow.setFramerateLimit(60);
 
-    enum Direction {
+    enum Direction
+    {
         UP,
         DOWN,
         LEFT,
@@ -20,25 +22,19 @@ int main()
 
     Direction direction = STILL;
 
-    // Clock
-
     sf::Clock clock;
-        
-    // Lines
 
     sf::VertexArray linesY(sf::PrimitiveType::Lines, 32);
-
     int lineCount = 0;
 
     for (int i = 0; i < 800; i += 50)
     {
         linesY[lineCount].position = sf::Vector2f(0.f, i);
-        linesY[++lineCount].position = sf::Vector2f(800.f,i);
+        linesY[++lineCount].position = sf::Vector2f(800.f, i);
         lineCount++;
     }
-    
-    sf::VertexArray linesX(sf::PrimitiveType::Lines, 32);
 
+    sf::VertexArray linesX(sf::PrimitiveType::Lines, 32);
     lineCount = 0;
 
     for (int i = 0; i < 800; i += 50)
@@ -47,53 +43,54 @@ int main()
         linesX[++lineCount].position = sf::Vector2f(i, 600.f);
         lineCount++;
     }
-    
-
-    //RANDOM
 
     random_device rd;
     mt19937 gen(rd());
-
     uniform_int_distribution<int> dist(0, 15);
     uniform_int_distribution<int> distY(0, 11);
 
-    //Snake
-
     vector<sf::RectangleShape> snake;
-    
-    sf::RectangleShape snakeBody({50.f, 50.f});
 
-    //Snake color
+    sf::RectangleShape snakeBody({50.f, 50.f});
 
     snakeBody.setFillColor(sf::Color::Green);
 
-    //Snake Texture
-
     sf::Texture snakeTexture;
+
     if (!snakeTexture.loadFromFile("snakeSkin.jpg"))
     {
         cout << "Can't load a file";
     }
 
     snakeBody.setTexture(&snakeTexture);
-
     snake.push_back(snakeBody);
-
-    //Apple
 
     sf::CircleShape apple(20);
 
-    //Apple Texture
-
     sf::Texture appleTexture;
+
     if (!appleTexture.loadFromFile("appleSkin.png"))
     {
         cout << "Can't load a file";
     }
-    
+
     apple.setTexture(&appleTexture);
     apple.setPosition({150.f, 150.f});
-    
+
+    bool gameOver = false;
+
+    sf::Font font;
+
+    if (!font.openFromFile("ARIAL.TTF"))
+    {
+        cout << "Cant load font!";
+    }
+
+    sf::Text gameOverText(font, "GAME OVER", 60);
+    gameOverText.setPosition({250.f, 200.f});
+
+    sf::Text restartText(font, "RESTART", 30);
+    restartText.setPosition({270.f, 300.f});
 
     while (mainWindow.isOpen())
     {
@@ -103,13 +100,26 @@ int main()
             {
                 mainWindow.close();
             }
-            
+
+            if (gameOver && event->is<sf::Event::KeyPressed>())
+            {
+                if (event->getIf<sf::Event::KeyPressed>()->code == sf::Keyboard::Key::R)
+                {
+                    snake.clear();
+
+                    snakeBody.setPosition({0.f, 0.f});
+                    snake.push_back(snakeBody);
+
+                    gameOver = false;
+                    direction = STILL;
+                    clock.restart();
+                }
+            }
         }
 
-        //movement
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up))
         {
-           direction = UP;
+            direction = UP;
         }
         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))
         {
@@ -124,33 +134,45 @@ int main()
             direction = RIGHT;
         }
 
-        if (clock.getElapsedTime().asSeconds() >= 0.2)
+        if (!gameOver && clock.getElapsedTime().asSeconds() >= 0.2)
         {
             for (int i = snake.size() - 1; i > 0; i--)
             {
                 snake[i].setPosition(snake[i - 1].getPosition());
             }
-            
+
             if (direction == UP)
             {
                 snake[0].move({0.f, -50.f});
             }
+
             if (direction == DOWN)
             {
                 snake[0].move({0.f, 50.f});
             }
+
             if (direction == LEFT)
             {
                 snake[0].move({-50.f, 0.f});
             }
+
             if (direction == RIGHT)
             {
                 snake[0].move({50.f, 0.f});
             }
+
+            for (int i = 1; i < snake.size(); i++)
+            {
+                auto collision = snake[0].getGlobalBounds().findIntersection(snake[i].getGlobalBounds());
+
+                if (collision)
+                {
+                    gameOver = true;
+                }
+            }
+
             clock.restart();
         }
-
-        //Bonduary
 
         sf::Vector2f boundaries = {750.f, 550.f};
 
@@ -161,6 +183,7 @@ int main()
                 snake[0].getPosition().y
             });
         }
+
         if (snake[0].getPosition().x > boundaries.x)
         {
             snake[0].setPosition({
@@ -168,6 +191,7 @@ int main()
                 snake[0].getPosition().y
             });
         }
+
         if (snake[0].getPosition().y < 0)
         {
             snake[0].setPosition({
@@ -175,6 +199,7 @@ int main()
                 0.f
             });
         }
+
         if (snake[0].getPosition().y > boundaries.y)
         {
             snake[0].setPosition({
@@ -182,19 +207,19 @@ int main()
                 boundaries.y
             });
         }
-        
-        //Collision
-        
+
         auto intersection = snake[0].getGlobalBounds().findIntersection(apple.getGlobalBounds());
+
         if (intersection)
         {
             apple.setPosition({
                 static_cast<float>(dist(gen) * 50),
                 static_cast<float>(distY(gen) * 50)
             });
-            
+
             sf::RectangleShape newSegment({50.f, 50.f});
             sf::Vector2f lastPosition = snake.back().getPosition();
+
             newSegment.setTexture(&snakeTexture);
 
             if (direction == RIGHT)
@@ -203,10 +228,8 @@ int main()
                     lastPosition.x - 50.f,
                     lastPosition.y
                 });
-
-                cout << "Head: "<< lastPosition.x << "Y: " << lastPosition.y << endl;
             }
-            
+
             if (direction == LEFT)
             {
                 newSegment.setPosition({
@@ -230,13 +253,10 @@ int main()
                     lastPosition.y + 50.f
                 });
             }
-            
-            
 
             snake.push_back(newSegment);
-            
         }
-        
+
         mainWindow.clear(sf::Color::Black);
 
         mainWindow.draw(linesY);
@@ -246,10 +266,15 @@ int main()
         {
             mainWindow.draw(snakes);
         }
-        
+
         mainWindow.draw(apple);
+
+        if (gameOver)
+        {
+            mainWindow.draw(gameOverText);
+            mainWindow.draw(restartText);
+        }
 
         mainWindow.display();
     }
-    
 }
