@@ -25,12 +25,17 @@ int main()
     sf::Clock clock;
 
     sf::VertexArray linesY(sf::PrimitiveType::Lines, 32);
+
     int lineCount = 0;
 
     for (int i = 0; i < 800; i += 50)
     {
         linesY[lineCount].position = sf::Vector2f(0.f, i);
+        linesY[lineCount].color = sf::Color({30, 60, 30});
+
         linesY[++lineCount].position = sf::Vector2f(800.f, i);
+        linesY[lineCount].color = sf::Color({30, 60, 30});
+
         lineCount++;
     }
 
@@ -40,7 +45,9 @@ int main()
     for (int i = 0; i < 800; i += 50)
     {
         linesX[lineCount].position = sf::Vector2f(i, 0.f);
+        linesX[lineCount].color = sf::Color({30, 60, 30});
         linesX[++lineCount].position = sf::Vector2f(i, 600.f);
+        linesX[lineCount].color = sf::Color({30, 60, 30});
         lineCount++;
     }
 
@@ -48,6 +55,8 @@ int main()
     mt19937 gen(rd());
     uniform_int_distribution<int> dist(0, 15);
     uniform_int_distribution<int> distY(0, 11);
+
+    //SNAKE
 
     vector<sf::RectangleShape> snake;
 
@@ -79,6 +88,8 @@ int main()
 
     bool gameOver = false;
 
+    int score = 0;
+
     sf::Font font;
 
     if (!font.openFromFile("ARIAL.TTF"))
@@ -91,6 +102,9 @@ int main()
 
     sf::Text restartText(font, "RESTART", 30);
     restartText.setPosition({270.f, 300.f});
+
+    sf::Text scoreText(font, "SCORE 0", 30);
+    scoreText.setPosition({10.f, 10.f});
 
     while (mainWindow.isOpen())
     {
@@ -113,25 +127,41 @@ int main()
                     gameOver = false;
                     direction = STILL;
                     clock.restart();
+
+                    score = 0;
+                    scoreText.setString("SCORE " + to_string(score));
                 }
             }
         }
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up))
         {
-            direction = UP;
+            if (direction != DOWN)
+            {
+                direction = UP;
+            }
         }
         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))
         {
-            direction = DOWN;
+            if (direction != UP)
+            {
+                direction = DOWN;
+            }
         }
         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))
         {
-            direction = LEFT;
+            if (direction != RIGHT)
+            {
+                direction = LEFT;
+            }
+            
         }
         else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right))
         {
-            direction = RIGHT;
+            if (direction != LEFT)
+            {
+                direction = RIGHT;   
+            }
         }
 
         if (!gameOver && clock.getElapsedTime().asSeconds() >= 0.2)
@@ -178,44 +208,51 @@ int main()
 
         if (snake[0].getPosition().x < 0)
         {
-            snake[0].setPosition({
-                0.f,
-                snake[0].getPosition().y
-            });
+            gameOver = true;
         }
 
         if (snake[0].getPosition().x > boundaries.x)
         {
-            snake[0].setPosition({
-                boundaries.x,
-                snake[0].getPosition().y
-            });
+            gameOver = true;
         }
 
         if (snake[0].getPosition().y < 0)
         {
-            snake[0].setPosition({
-                snake[0].getPosition().x,
-                0.f
-            });
+            gameOver = true;
         }
 
         if (snake[0].getPosition().y > boundaries.y)
         {
-            snake[0].setPosition({
-                snake[0].getPosition().x,
-                boundaries.y
-            });
+            gameOver = true;
         }
 
         auto intersection = snake[0].getGlobalBounds().findIntersection(apple.getGlobalBounds());
 
         if (intersection)
         {
-            apple.setPosition({
-                static_cast<float>(dist(gen) * 50),
-                static_cast<float>(distY(gen) * 50)
-            });
+            bool appleOnSnake = true;
+
+            while (appleOnSnake)
+            {
+                appleOnSnake = false;
+
+                apple.setPosition({
+                    static_cast<float>(dist(gen) * 50),
+                    static_cast<float>(distY(gen) * 50)
+                });
+
+                for (int i = 0; i < snake.size(); i++)
+                {
+                    if (snake[i].getGlobalBounds().findIntersection(apple.getGlobalBounds()))
+                    {
+                        appleOnSnake = true;
+                    }
+                }   
+            }
+
+            score++;
+
+            scoreText.setString("SCORE " + to_string(score));
 
             sf::RectangleShape newSegment({50.f, 50.f});
             sf::Vector2f lastPosition = snake.back().getPosition();
@@ -268,6 +305,7 @@ int main()
         }
 
         mainWindow.draw(apple);
+        mainWindow.draw(scoreText);
 
         if (gameOver)
         {
